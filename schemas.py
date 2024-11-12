@@ -12,4 +12,4 @@ class Applications(Base):
     __tablename__ = "applications"
     app_id = Column(String, primary_key=True, index=True)
     app_status = Column(Integer)
-    change_date = Column(String)
+    change_date = Column(Integer)
