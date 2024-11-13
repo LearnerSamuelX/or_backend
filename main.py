@@ -7,6 +7,7 @@ from database import engine, SessionLocal  # from the ./database.py
 from datetime import datetime
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
@@ -28,6 +29,18 @@ class AppDelete(BaseModel):
     app_id: str
 
 
+class ResAddress(BaseModel):
+
+    app_id: str
+    res_id: str
+    province: Optional[str] = None
+    postalcode: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
+    street: Optional[str] = None
+    street_num: Optional[int] = None
+
+
 def get_db():
     try:
         db = SessionLocal()
@@ -39,6 +52,12 @@ def get_db():
 # @app.get("/")
 # def read_root():
 #     return {"Hello": "World"}
+
+
+@app.get("/res_addresses/{res_id}")
+async def get_addresses(res_id: str, db: Session = Depends(get_db)):
+    address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.res_id == res_id).first()
+    return address
 
 
 @app.get("/applications")
@@ -77,14 +96,44 @@ async def create_application(application: App, db: Session = Depends(get_db)):
     return application_model
 
 
-# @app.post("/save")
-# async def save_application(application: App, db: Session = Depends(get_db)):
-#     """
-#     save an application
-#     """
-#     res_address_model = schemas.ResidentialAddress()
-#     res_address_model.res_id = str(uuid4())
-#     return
+@app.post("/save")
+async def save_application(res_address: ResAddress, db: Session = Depends(get_db)):
+    """
+    save an application
+    province VARCHAR
+    postalcode VARCHAR
+    city VARCHAR
+    province VARCHAR
+    street VARCHAR
+    streetNum INT
+    """
+
+    # Get the res_address from the res_address table first
+    res_id = res_address.res_id
+    target_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.res_id == res_id).first()
+    if not target_address:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    if res_address.province is not None:
+        target_address.province = res_address.province
+    if res_address.postalcode is not None:
+        target_address.postalcode = res_address.postalcode
+    if res_address.city is not None:
+        target_address.city = res_address.city
+    if res_address.province is not None:
+        target_address.province = res_address.province
+    if res_address.street is not None:
+        target_address.street = res_address.street
+    if res_address.street_num is not None:
+        target_address.street_num = res_address.street_num
+
+    db.add(target_address)
+    db.commit()
+
+    return JSONResponse(
+        status_code=200,
+        content={"msg": "SUCCESS, application saved"},
+    )
 
 
 @app.delete("/delete")
