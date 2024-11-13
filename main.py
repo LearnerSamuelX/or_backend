@@ -56,7 +56,13 @@ def get_db():
 
 @app.get("/res_addresses/{res_id}")
 async def get_addresses(res_id: str, db: Session = Depends(get_db)):
-    address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.res_id == res_id).first()
+    address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == res_id).first()
+    return address
+
+
+@app.get("/get_personal_info/{pi_id}")
+async def get_personal_info(pi_id: str, db: Session = Depends(get_db)):
+    address = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == pi_id).first()
     return address
 
 
@@ -84,12 +90,17 @@ async def create_application(application: App, db: Session = Depends(get_db)):
     application_model.app_status = application_status
     application_model.change_date = timestamp_in_seconds
 
+    pi_model = schemas.PersonalInfo()  # pi stands for personal information
+    pi_model.app_id = app_id
+    pi_model.pi_id = app_id
+
     res_address_model = schemas.ResidentialAddress()
     res_address_model.app_id = app_id
     res_address_model.res_id = app_id
 
     db.add(application_model)
     db.add(res_address_model)
+    db.add(pi_model)
     db.commit()
     db.refresh(application_model)
 
@@ -98,16 +109,6 @@ async def create_application(application: App, db: Session = Depends(get_db)):
 
 @app.post("/save")
 async def save_application(res_address: ResAddress, db: Session = Depends(get_db)):
-    """
-    save an application
-    province VARCHAR
-    postalcode VARCHAR
-    city VARCHAR
-    province VARCHAR
-    street VARCHAR
-    streetNum INT
-    """
-
     # Get the res_address from the res_address table first
     res_id = res_address.res_id
     target_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.res_id == res_id).first()
@@ -137,11 +138,11 @@ async def save_application(res_address: ResAddress, db: Session = Depends(get_db
 
 
 @app.delete("/delete")
-async def delete_application(appDelete: AppDelete, db: Session = Depends(get_db)):
+async def delete_application(app_delete: AppDelete, db: Session = Depends(get_db)):
     """
     Delete ONE application
     """
-    app_id = appDelete.app_id
+    app_id = app_delete.app_id
     application = db.query(schemas.Application).filter(schemas.Application.app_id == app_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")

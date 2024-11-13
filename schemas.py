@@ -15,13 +15,26 @@ class Application(Base):
     app_status = Column(Integer)
     change_date = Column(Integer)
 
-    application = relationship("ResidentialAddress", back_populates="r_address")
+    to_res = relationship("ResidentialAddress", back_populates="r_address", cascade="all, delete-orphan")
+    to_pi = relationship("PersonalInfo", back_populates="personal_info", cascade="all, delete-orphan")
+
+
+class PersonalInfo(Base):
+    __tablename__ = "personal_info_table"
+    app_id = Column(String, ForeignKey("application_table.app_id"), primary_key=True)
+    first_name = Column(String)
+    last_name = Column(String)
+    middle_name = Column(String)
+    dl_num = Column(String)
+    dob = Column(Integer)
+    gender = Column(String)
+
+    personal_info = relationship("Application", back_populates="to_pi")
 
 
 class ResidentialAddress(Base):
     __tablename__ = "address_table"
-    res_id = Column(String, primary_key=True, index=True)
-    app_id = Column(String, ForeignKey("application_table.app_id"))
+    app_id = Column(String, ForeignKey("application_table.app_id"), primary_key=True)
     province = Column(String)  # drop down
     postalcode = Column(String)
     city = Column(String)
@@ -29,4 +42,4 @@ class ResidentialAddress(Base):
     street = Column(String)
     street_num = Column(Integer)
 
-    r_address = relationship("Application", back_populates="application")
+    r_address = relationship("Application", back_populates="to_res")
