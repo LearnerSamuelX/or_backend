@@ -22,13 +22,13 @@ class Application(Base):
 class PersonalInfo(Base):
     __tablename__ = "personal_info_table"
     app_id = Column(String, ForeignKey("application_table.app_id"), primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    middle_name = Column(String)
-    dl_num = Column(String)
-    dob = Column(Integer)
-    gender = Column(String)
-    height = Column(Integer)
+    first_name = Column(String, default="")
+    last_name = Column(String, default="")
+    middle_name = Column(String, default="")
+    dl_num = Column(String, default="")
+    dob = Column(Integer, default=0)
+    gender = Column(String, default="")
+    height = Column(Integer, default=0)
 
     personal_info = relationship("Application", back_populates="to_pi")
 
@@ -36,11 +36,10 @@ class PersonalInfo(Base):
 class ResidentialAddress(Base):
     __tablename__ = "address_table"
     app_id = Column(String, ForeignKey("application_table.app_id"), primary_key=True)
-    province = Column(String)  # drop down
-    postalcode = Column(String)
-    city = Column(String)
-    province = Column(String)
-    street = Column(String)
-    street_num = Column(Integer)
+    province = Column(String, default="")  # drop down
+    postalcode = Column(String, default="")
+    city = Column(String, default="")
+    street = Column(String, default="")
+    street_num = Column(Integer, default=0)
 
     r_address = relationship("Application", back_populates="to_res")

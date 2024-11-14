@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Response
 from fastapi.responses import JSONResponse
 
 from uuid import uuid4
@@ -6,72 +6,11 @@ import schemas  # from the ./models.py
 from database import engine, SessionLocal  # from the ./database.py
 from datetime import datetime
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import Optional
+from validation_models import App, AppInfo, ValidatedAppInfo, AppDelete
 
 app = FastAPI()
 
 schemas.Base.metadata.create_all(bind=engine)
-
-
-class App(BaseModel):
-    app_status: int
-
-    class Config:
-        model_config = {"from_attributes": True}
-
-
-# class Apps(BaseModel):
-#     apps: List[App]
-
-
-class AppDelete(BaseModel):
-    app_id: str
-
-
-class PersonalInfo(BaseModel):
-
-    app_id: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    middle_name: Optional[str] = None
-    dl_num: Optional[str] = None
-    dob: Optional[str] = None
-    gender: Optional[str] = None
-    height: Optional[int] = None
-
-
-class ResAddress(BaseModel):
-
-    app_id: str
-    province: Optional[str] = None
-    postalcode: Optional[str] = None
-    city: Optional[str] = None
-    province: Optional[str] = None
-    street: Optional[str] = None
-    street_num: Optional[int] = None
-
-
-class AppInfo(BaseModel):
-
-    app_id: str
-
-    # for personal information
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    middle_name: Optional[str] = None
-    dl_num: Optional[str] = None
-    dob: Optional[str] = None
-    gender: Optional[str] = None
-    height: Optional[int] = None
-
-    # for residential address
-    province: Optional[str] = None
-    postalcode: Optional[str] = None
-    city: Optional[str] = None
-    province: Optional[str] = None
-    street: Optional[str] = None
-    street_num: Optional[int] = None
 
 
 def get_db():
@@ -102,6 +41,38 @@ async def get_applications(db: Session = Depends(get_db)):
     results = db.query(schemas.Application).all()
     results.sort(key=lambda x: x.change_date, reverse=True)
     return results
+
+
+@app.get("/application/{app_id}")
+async def get_application(app_id: str, db: Session = Depends(get_db)):
+    """
+    Get one specific application
+    """
+    personal_info = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == app_id).first()
+    res_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == app_id).first()
+
+    if not personal_info:
+        raise HTTPException(status_code=404, detail=f"Personal information for user  with ID {app_id}  not found")
+
+    if not res_address:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    # combined_data = AppInfo(
+    #     first_name=personal_info.first_name,
+    #     last_name=personal_info.last_name,
+    #     middle_name=personal_info.middle_name,
+    #     dl_num=personal_info.dl_num,
+    #     dob=personal_info.dob,
+    #     gender=personal_info.gender,
+    #     height=personal_info.height,
+    #     province=res_address.province,
+    #     postalcode=res_address.postalcode,
+    #     city=res_address.city,
+    #     street=res_address.street,
+    #     street_num=res_address.street_num,
+    # )
+
+    return (personal_info, res_address)
 
 
 @app.post("/create")
@@ -174,8 +145,6 @@ async def save_application(app_info: AppInfo, db: Session = Depends(get_db)):
         target_address.postalcode = app_info.postalcode
     if app_info.city is not None:
         target_address.city = app_info.city
-    if app_info.province is not None:
-        target_address.province = app_info.province
     if app_info.street is not None:
         target_address.street = app_info.street
     if app_info.street_num is not None:
@@ -192,6 +161,23 @@ async def save_application(app_info: AppInfo, db: Session = Depends(get_db)):
     return JSONResponse(
         status_code=200,
         content={"msg": "SUCCESS, application saved"},
+    )
+
+
+@app.post("/submit")
+async def submit_application(app_info: ValidatedAppInfo, db: Session = Depends(get_db)):
+    app_id = app_info.app_id
+
+    # change the status of application
+    target_app = db.query(schemas.Application).filter(schemas.Application.app_id == app_id).first()
+    target_app.app_status = 2
+    timestamp_in_seconds = int(datetime.now().timestamp())
+    target_app.change_date = timestamp_in_seconds
+    db.add(target_app)
+    db.commit()
+    return JSONResponse(
+        status_code=200,
+        content={"msg": "SUCCESS, application submitted"},
     )
 
 
