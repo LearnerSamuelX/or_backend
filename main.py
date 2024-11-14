@@ -100,6 +100,7 @@ async def get_applications(db: Session = Depends(get_db)):
     Get ALL applications
     """
     results = db.query(schemas.Application).all()
+    results.sort(key=lambda x: x.change_date, reverse=True)
     return results
 
 
@@ -139,11 +140,12 @@ async def create_application(application: App, db: Session = Depends(get_db)):
 async def save_application(app_info: AppInfo, db: Session = Depends(get_db)):
     # Get the res_address from the res_address table first
     app_id = app_info.app_id
+    target_app = db.query(schemas.Application).filter(schemas.Application.app_id == app_id).first()
     target_pi = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == app_id).first()
     target_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == app_id).first()
     if not target_pi:
         raise HTTPException(
-            status_code=404, detail=f"Personal information for user  with ID: {app_info.app_id}  not found"
+            status_code=404, detail=f"Personal information for user  with ID {app_info.app_id}  not found"
         )
 
     if not target_address:
@@ -179,6 +181,10 @@ async def save_application(app_info: AppInfo, db: Session = Depends(get_db)):
     if app_info.street_num is not None:
         target_address.street_num = app_info.street_num
 
+    timestamp_in_seconds = int(datetime.now().timestamp())
+    target_app.change_date = timestamp_in_seconds
+
+    db.add(target_app)
     db.add(target_pi)
     db.add(target_address)
     db.commit()
