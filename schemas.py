@@ -28,6 +28,7 @@ class PersonalInfo(Base):
     dl_num = Column(String)
     dob = Column(Integer)
     gender = Column(String)
+    height = Column(Integer)
 
     personal_info = relationship("Application", back_populates="to_pi")
 

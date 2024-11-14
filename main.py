@@ -29,10 +29,43 @@ class AppDelete(BaseModel):
     app_id: str
 
 
+class PersonalInfo(BaseModel):
+
+    app_id: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    dl_num: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
+    height: Optional[int] = None
+
+
 class ResAddress(BaseModel):
 
     app_id: str
-    res_id: str
+    province: Optional[str] = None
+    postalcode: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
+    street: Optional[str] = None
+    street_num: Optional[int] = None
+
+
+class AppInfo(BaseModel):
+
+    app_id: str
+
+    # for personal information
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    dl_num: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
+    height: Optional[int] = None
+
+    # for residential address
     province: Optional[str] = None
     postalcode: Optional[str] = None
     city: Optional[str] = None
@@ -49,20 +82,15 @@ def get_db():
         db.close()
 
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
-
-
-@app.get("/res_addresses/{res_id}")
-async def get_addresses(res_id: str, db: Session = Depends(get_db)):
-    address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == res_id).first()
+@app.get("/res_addresses/{app_id}")
+async def get_addresses(app_id: str, db: Session = Depends(get_db)):
+    address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == app_id).first()
     return address
 
 
-@app.get("/get_personal_info/{pi_id}")
-async def get_personal_info(pi_id: str, db: Session = Depends(get_db)):
-    address = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == pi_id).first()
+@app.get("/get_personal_info/{app_id}")
+async def get_personal_info(app_id: str, db: Session = Depends(get_db)):
+    address = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == app_id).first()
     return address
 
 
@@ -108,26 +136,50 @@ async def create_application(application: App, db: Session = Depends(get_db)):
 
 
 @app.post("/save")
-async def save_application(res_address: ResAddress, db: Session = Depends(get_db)):
+async def save_application(app_info: AppInfo, db: Session = Depends(get_db)):
     # Get the res_address from the res_address table first
-    res_id = res_address.res_id
-    target_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.res_id == res_id).first()
+    app_id = app_info.app_id
+    target_pi = db.query(schemas.PersonalInfo).filter(schemas.PersonalInfo.app_id == app_id).first()
+    target_address = db.query(schemas.ResidentialAddress).filter(schemas.ResidentialAddress.app_id == app_id).first()
+    if not target_pi:
+        raise HTTPException(
+            status_code=404, detail=f"Personal information for user  with ID: {app_info.app_id}  not found"
+        )
+
     if not target_address:
         raise HTTPException(status_code=404, detail="Address not found")
 
-    if res_address.province is not None:
-        target_address.province = res_address.province
-    if res_address.postalcode is not None:
-        target_address.postalcode = res_address.postalcode
-    if res_address.city is not None:
-        target_address.city = res_address.city
-    if res_address.province is not None:
-        target_address.province = res_address.province
-    if res_address.street is not None:
-        target_address.street = res_address.street
-    if res_address.street_num is not None:
-        target_address.street_num = res_address.street_num
+    # validate personal information
+    if app_info.first_name is not None:
+        target_pi.first_name = app_info.first_name
+    if app_info.last_name is not None:
+        target_pi.last_name = app_info.last_name
+    if app_info.middle_name is not None:
+        target_pi.middle_name = app_info.middle_name
+    if app_info.dl_num is not None:
+        target_pi.dl_num = app_info.dl_num
+    if app_info.dob is not None:
+        target_pi.dob = app_info.dob
+    if app_info.gender is not None:
+        target_pi.gender = app_info.gender
+    if app_info.height is not None:
+        target_pi.height = app_info.height
 
+    # validate residential information
+    if app_info.province is not None:
+        target_address.province = app_info.province
+    if app_info.postalcode is not None:
+        target_address.postalcode = app_info.postalcode
+    if app_info.city is not None:
+        target_address.city = app_info.city
+    if app_info.province is not None:
+        target_address.province = app_info.province
+    if app_info.street is not None:
+        target_address.street = app_info.street
+    if app_info.street_num is not None:
+        target_address.street_num = app_info.street_num
+
+    db.add(target_pi)
     db.add(target_address)
     db.commit()
 
