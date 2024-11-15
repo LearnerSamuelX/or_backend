@@ -22,7 +22,7 @@ class AppInfo(BaseModel):
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
     dl_num: Optional[str] = None
-    dob: Optional[str] = None
+    dob: Optional[int] = None
     gender: Optional[str] = None
     height: Optional[int] = None
 
@@ -47,9 +47,9 @@ class ValidatedAppInfo(BaseModel):
     last_name: str
     middle_name: str
     dl_num: str
-    dob: str
+    dob: int
     gender: str
-    height: str
+    height: int
 
     # for residential address
     province: str
@@ -67,7 +67,7 @@ class PersonalInfo(BaseModel):
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
     dl_num: Optional[str] = None
-    dob: Optional[str] = None
+    dob: Optional[int] = None
     gender: Optional[str] = None
     height: Optional[int] = None
 

@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException, Depends, Response
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
 from uuid import uuid4
-import schemas  # from the ./models.py
-from database import engine, SessionLocal  # from the ./database.py
+import schemas
+from database import engine, SessionLocal
 from datetime import datetime
 from sqlalchemy.orm import Session
 from validation_models import App, AppInfo, ValidatedAppInfo, AppDelete
@@ -57,22 +57,23 @@ async def get_application(app_id: str, db: Session = Depends(get_db)):
     if not res_address:
         raise HTTPException(status_code=404, detail="Address not found")
 
-    # combined_data = AppInfo(
-    #     first_name=personal_info.first_name,
-    #     last_name=personal_info.last_name,
-    #     middle_name=personal_info.middle_name,
-    #     dl_num=personal_info.dl_num,
-    #     dob=personal_info.dob,
-    #     gender=personal_info.gender,
-    #     height=personal_info.height,
-    #     province=res_address.province,
-    #     postalcode=res_address.postalcode,
-    #     city=res_address.city,
-    #     street=res_address.street,
-    #     street_num=res_address.street_num,
-    # )
+    combined_data = AppInfo(
+        app_id=app_id,
+        first_name=personal_info.first_name,
+        last_name=personal_info.last_name,
+        middle_name=personal_info.middle_name,
+        dl_num=personal_info.dl_num,
+        dob=personal_info.dob,
+        gender=personal_info.gender,
+        height=personal_info.height,
+        province=res_address.province,
+        postalcode=res_address.postalcode,
+        city=res_address.city,
+        street=res_address.street,
+        street_num=res_address.street_num,
+    )
 
-    return (personal_info, res_address)
+    return combined_data
 
 
 @app.post("/create")
